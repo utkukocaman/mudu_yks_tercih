@@ -1,0 +1,21 @@
+{
+  "projectName": "yks_analytics_portal",
+  "createdDate": "2026-08-06",
+  "status": "INITIALIZED",
+  "coordinator": "Byakuya",
+  "subCoordinator": "Senku",
+  "assignedAgents": {
+    "Sai": "Software Coding",
+    "Yuzuriha": "UI/UX Design",
+    "Gen": "Documentation",
+    "Chrome": "AI & Analytics"
+  },
+  "structure5S": {
+    "docs": "projects/yks_analytics_portal/docs/",
+    "designs_industrial": "projects/yks_analytics_portal/designs/industrial/",
+    "designs_ui_ux": "projects/yks_analytics_portal/designs/ui_ux/",
+    "src": "projects/yks_analytics_portal/src/",
+    "ai": "projects/yks_analytics_portal/ai/"
+  },
+  "currentPhase": "V1_PROTOTYPE_COMPLETED"
+}
