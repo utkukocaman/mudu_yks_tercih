@@ -963,10 +963,25 @@ document.addEventListener('DOMContentLoaded', () => {
       else if (displayScholarship === 'Ücretli') bursClass += ' ucretli';
       else bursClass += ' ucretsiz';
 
+      const baseDeptName = dept ? dept.name.trim() : (r.depId || '');
+      let displayDeptHTML = baseDeptName;
+
+      if (r.fullName) {
+        const matches = r.fullName.match(/\(([^)]+)\)/g);
+        if (matches) {
+          const qualTags = matches
+            .map(m => m.replace(/[()]/g, '').trim())
+            .filter(m => m !== 'Ücretsiz' && m !== 'Burslu' && !m.includes('İndirimli') && !m.includes('Ücretli') && m !== 'Genel');
+          if (qualTags.length > 0) {
+            displayDeptHTML += ` <span class="dept-tag">${qualTags.join(' • ')}</span>`;
+          }
+        }
+      }
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><b>${uni ? uni.name : r.uniId}</b></td>
-        <td>${dept ? dept.name : r.depId}</td>
+        <td>${displayDeptHTML}</td>
         <td><span class="${bursClass}">${displayScholarship}</span></td>
         <td><span class="rank-badge">${(latestData.rank && latestData.rank > 0) ? '#' + latestData.rank.toLocaleString() : '-'}</span></td>
         <td><span class="score-badge">${latestData.baseScore ? latestData.baseScore : '-'}</span></td>

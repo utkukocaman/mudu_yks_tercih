@@ -1145,3 +1145,23 @@ body.light-mode .popover-arrow {
   opacity: 1;
   color: var(--accent-cyan);
 }
+
+/* Department Qualification Tag (İngilizce, İ.Ö, MTOK, KKTC vb.) */
+.dept-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+body.light-mode .dept-tag {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.1);
+  border-color: rgba(2, 132, 199, 0.3);
+}
