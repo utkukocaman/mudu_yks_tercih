@@ -6,6 +6,13 @@
 
 ---
 
+## 🌐 Canlı Web Portalı
+
+Sitemize doğrudan erişmek için:  
+👉 **[https://utkukocaman.github.io/yks-analytics-portal/](https://utkukocaman.github.io/yks-analytics-portal/)**
+
+---
+
 ## 🌟 Öne Çıkan Özellikler
 
 * **📊 10 Yıllık Tarihsel Trend Grafiği:** Seçilen bölümler ve üniversitelerin 2015-2025 başarı sıralaması ve taban puan ivmesi.
@@ -23,34 +30,6 @@
 * **JavaScript (ES6+):** Saf JS ile yüksek hızlı veri işleme ve olay yönetimi.
 * **Apache ECharts 5:** Vektörel canvas grafik motoru.
 * **FontAwesome 6:** Modern vektörel simgeler.
-
----
-
-## 🛠️ Yerel Çalıştırma (Local Setup)
-
-Projeyi bilgisayarınızda çalıştırmak için herhangi bir ek bağımlılık kurmanıza gerek yoktur:
-
-```bash
-# Projeyi klonlayın
-git clone https://github.com/KULLANICI_ADI/yks-analytics-portal.git
-
-# Proje dizinine girin
-cd yks-analytics-portal
-
-# Basit bir HTTP sunucusu başlatın (Python ile)
-python -m http.server 8080
-```
-Ardından tarayıcınızda `http://localhost:8080` adresine gitmeniz yeterlidir.
-
----
-
-## 🌐 GitHub Pages Üzerinde Yayınlama
-
-Projeyi GitHub Pages ile ücretsiz canlıya almak için:
-1. Reponuzu GitHub'a push edin.
-2. Reponuzun **Settings > Pages** sekmesine gidin.
-3. **Source** kısmından `main` veya `master` dalını seçip **Save** butonuna basın.
-4. Birkaç dakika içinde siteniz `https://KULLANICI_ADI.github.io/yks-analytics-portal/` adresinde canlıya geçecektir!
 
 ---
 
