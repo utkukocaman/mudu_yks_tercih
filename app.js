@@ -465,27 +465,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (val === null) return false;
 
         if (metric === 'rank') {
-          // Sıralama Metriği: Küçük sayılar daha iyi (örn: 10.000, 50.000)
+          // Sıralama Metriği: Küçük sayılar daha iyi (örn: 35, 1.000, 50.000)
+          // Derece yapılan sıralamalarda (örn: 35. sıra) dar aralık kalmaması için akıllı esneklik bandı uygulanır.
+          const percentSpan = targetVal * tolRatio;
+          const effectiveSpan = Math.max(percentSpan, tolPercent > 0 ? 2500 : 200);
+
           if (tolPercent === 0) {
-            return Math.abs(val - targetVal) / targetVal <= 0.05; // %0 toleransta ±%5 esneklik bandı
+            const minR = Math.max(1, targetVal - 500);
+            const maxR = targetVal + 500;
+            return val >= minR && val <= maxR;
           }
-          const minRank = Math.max(1, targetVal * (1 - tolRatio));
-          const maxRank = targetVal * (1 + tolRatio);
+
+          const minRank = Math.max(1, targetVal - effectiveSpan);
+          const maxRank = targetVal + effectiveSpan;
 
           if (direction === 'both') {
             return val >= minRank && val <= maxRank;
-          } else if (direction === 'safe') { // Sıralama düşerse (Güvenli)
-            return val >= targetVal && val <= maxRank;
+          } else if (direction === 'safe') { // Güvenli / Sıralama Düşerse
+            return val >= targetVal && val <= Math.max(maxRank, targetVal + 10000);
           } else if (direction === 'reach') { // Yüksek hedef
             return val >= minRank && val <= targetVal;
           }
         } else {
-          // Taban Puan Metriği: Büyük sayılar daha iyi (örn: 450)
+          // Taban Puan Metriği: Büyük sayılar daha iyi (örn: 450, 550)
+          const percentSpan = targetVal * tolRatio;
+          const effectiveSpan = Math.max(percentSpan, tolPercent > 0 ? 15 : 5);
+
           if (tolPercent === 0) {
-            return Math.abs(val - targetVal) / targetVal <= 0.02;
+            return Math.abs(val - targetVal) <= 5;
           }
-          const minScore = targetVal * (1 - tolRatio);
-          const maxScore = targetVal * (1 + tolRatio);
+          const minScore = targetVal - effectiveSpan;
+          const maxScore = targetVal + effectiveSpan;
 
           if (direction === 'both') {
             return val >= minScore && val <= maxScore;
