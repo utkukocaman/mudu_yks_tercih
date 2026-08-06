@@ -351,9 +351,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!r) return '';
     const uni = YKS_DATABASE.universities.find(u => u.id === r.uniId);
     const uniName = uni ? uni.name.trim() : (r.uniId ? r.uniId.trim() : '');
+    const dept = YKS_DATABASE.departments.find(d => d.id === r.depId);
+    const baseDeptName = dept ? dept.name.trim() : '';
+
+    const tags = [];
+    
+    // Extract qualifications from fullName e.g. "(KKTC Uyruklu)", "(İngilizce)", "(İkinci Öğretim)", "(M.T.O.K.)"
+    if (r.fullName && baseDeptName) {
+      const full = r.fullName.trim();
+      const matches = full.match(/\(([^)]+)\)/g);
+      if (matches) {
+        matches.forEach(m => {
+          const clean = m.replace(/[()]/g, '').trim();
+          if (clean && !tags.includes(clean)) tags.push(clean);
+        });
+      }
+    }
+
     const sc = r.scholarship ? r.scholarship.trim() : '';
-    if (sc) {
-      return `${uniName} (${sc})`;
+    if (sc && sc !== 'Genel' && sc !== 'Ücretsiz' && !tags.includes(sc)) {
+      tags.push(sc);
+    } else if (sc && tags.length === 0) {
+      tags.push(sc);
+    }
+
+    if (tags.length > 0) {
+      return `${uniName} (${tags.join(' - ')})`;
     }
     return uniName;
   }
@@ -405,8 +428,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
+    // Ensure 100% unique series names if duplicate names occur in filtered set
+    const nameCounts = {};
+    filtered.forEach(r => {
+      const name = getProgramSeriesName(r);
+      nameCounts[name] = (nameCounts[name] || 0) + 1;
+    });
+
     const series = filtered.map((r, idx) => {
-      const seriesName = getProgramSeriesName(r);
+      let seriesName = getProgramSeriesName(r);
+      if (nameCounts[seriesName] > 1 && r.osymCode) {
+        seriesName = `${seriesName} [Kod:${r.osymCode}]`;
+      }
       const dataPoints = YKS_DATABASE.years.map(yr => {
         if (r.data[yr]) {
           const val = r.data[yr][state.metricType];
