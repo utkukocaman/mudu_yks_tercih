@@ -371,14 +371,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const countBadge = document.getElementById('uniSelectCount');
     const labelSpan = document.getElementById('uniDropdownLabel');
     const count = state.selectedUnis.length;
+    const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
 
-    if (countBadge) countBadge.textContent = `${count} Seçili`;
+    if (countBadge) countBadge.textContent = count === 0 ? 'Tümü' : `${count} Seçili`;
 
     if (labelSpan) {
-      if (!state.selectedDept) {
-        labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Önce Bölüm Seçiniz...`;
-      } else if (count === 0) {
-        labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Üniversiteleri Seçin...`;
+      if (count === 0) {
+        labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Tüm Üniversiteler Dahil`;
       } else if (count === 1) {
         const uni = YKS_DATABASE.universities.find(u => u.id === state.selectedUnis[0]);
         labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${uni ? uni.name.trim() : '1 Üniversite'}`;
@@ -416,23 +415,37 @@ document.addEventListener('DOMContentLoaded', () => {
       tooltipBorder: isLight ? '#cbd5e1' : '#2a304d',
       textColor: isLight ? '#1e293b' : '#f0f3fe',
       axisColor: isLight ? '#475569' : '#8c96b5',
-      radarAxisNameColor: isLight ? '#0f172a' : '#00f2fe', // High contrast: Dark Slate in Light Mode, Bright Cyan in Dark Mode!
+      radarAxisNameColor: isLight ? '#0f172a' : '#00f2fe',
       splitLine: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'
     };
   }
 
   // Helper Functions to filter data by University, Dept, Scholarship AND Target Robot Filters
   function getFilteredRecords() {
-    if (!state.selectedDept) return [];
+    const hasTargetFilter = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
 
-    let records = YKS_DATABASE.records.filter(r => 
-      state.selectedUnis.includes(r.uniId) && 
-      r.depId === state.selectedDept &&
-      state.selectedScholarships.includes(r.scholarship)
-    );
+    // Normal modda: Bölüm seçili değilse ve Hedef Filtresi yoksa boş dizi dön.
+    if (!state.selectedDept && !hasTargetFilter) return [];
 
-    // Target Robot Filtering Logic
-    if (state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0) {
+    let records = YKS_DATABASE.records;
+
+    // 1. Bölüm Filtresi (Eğer bir bölüm seçildiyse)
+    if (state.selectedDept) {
+      records = records.filter(r => r.depId === state.selectedDept);
+    }
+
+    // 2. Üniversite Filtresi (Eğer kullanıcı özel üniversite seçmişse onları alır; seçmediyse TÜMÜNÜ kapsar!)
+    if (state.selectedUnis && state.selectedUnis.length > 0) {
+      records = records.filter(r => state.selectedUnis.includes(r.uniId));
+    }
+
+    // 3. Burs Tipi Filtresi
+    if (state.selectedScholarships && state.selectedScholarships.length > 0) {
+      records = records.filter(r => state.selectedScholarships.includes(r.scholarship));
+    }
+
+    // 4. Tercih Robotu & Hedef Filtresi Mantığı
+    if (hasTargetFilter) {
       const targetVal = parseFloat(state.targetValue);
       const tolPercent = parseFloat(state.targetTolerance) || 0;
       const tolRatio = tolPercent / 100;
@@ -440,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const direction = state.targetDirection || 'both';
 
       records = records.filter(r => {
-        // Find latest valid metric value (2025, 2024, 2023...)
+        // En güncel geçerli metrik değerini bul (2025, 2024, 2023...)
         let val = null;
         for (let i = YKS_DATABASE.years.length - 1; i >= 0; i--) {
           const yr = YKS_DATABASE.years[i];
@@ -452,24 +465,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (val === null) return false;
 
         if (metric === 'rank') {
-          // Rank Metric: Smaller numbers are better (e.g. 10.000 is better than 100.000)
+          // Sıralama Metriği: Küçük sayılar daha iyi (örn: 10.000, 50.000)
           if (tolPercent === 0) {
-            return Math.abs(val - targetVal) / targetVal <= 0.03; // Exact match within 3%
+            return Math.abs(val - targetVal) / targetVal <= 0.05; // %0 toleransta ±%5 esneklik bandı
           }
           const minRank = Math.max(1, targetVal * (1 - tolRatio));
           const maxRank = targetVal * (1 + tolRatio);
 
           if (direction === 'both') {
             return val >= minRank && val <= maxRank;
-          } else if (direction === 'safe') { // Puan/sıralama düşerse
+          } else if (direction === 'safe') { // Sıralama düşerse (Güvenli)
             return val >= targetVal && val <= maxRank;
           } else if (direction === 'reach') { // Yüksek hedef
             return val >= minRank && val <= targetVal;
           }
         } else {
-          // BaseScore Metric: Larger numbers are better (e.g. 450 is better than 400)
+          // Taban Puan Metriği: Büyük sayılar daha iyi (örn: 450)
           if (tolPercent === 0) {
-            return Math.abs(val - targetVal) / targetVal <= 0.01;
+            return Math.abs(val - targetVal) / targetVal <= 0.02;
           }
           const minScore = targetVal * (1 - tolRatio);
           const maxScore = targetVal * (1 + tolRatio);
@@ -546,7 +559,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elScore) elScore.textContent = maxScore === 0 ? '-' : `${maxScore} Puan`;
     
     const deptInfo = YKS_DATABASE.departments.find(d => d.id === state.selectedDept);
-    if (elDept) elDept.textContent = deptInfo ? deptInfo.name : 'Seçilmedi';
+    const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
+    if (elDept) {
+      if (deptInfo) {
+        elDept.textContent = deptInfo.name;
+      } else if (hasTarget) {
+        const metricSymbol = state.targetMetric === 'rank' ? '#' : '';
+        const unitSymbol = state.targetMetric === 'baseScore' ? ' Puan' : '';
+        elDept.textContent = `Hedef: ${metricSymbol}${state.targetValue.toLocaleString()}${unitSymbol} (±%${state.targetTolerance})`;
+      } else {
+        elDept.textContent = 'Seçilmedi';
+      }
+    }
   }
 
   // 2. Trend Line Chart (2015-2025)
@@ -555,13 +579,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = getFilteredRecords();
     const isRank = state.metricType === 'rank';
     const tc = getThemeColors();
+    const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
 
-    if (!state.selectedDept || filtered.length === 0) {
+    if (filtered.length === 0) {
+      let emptyMsg = 'Lütfen Önce Bir Bölüm Seçiniz';
+      if (hasTarget) {
+        emptyMsg = 'Hedef Kriterlerinize Uyan Program Bulunamadı (Esneklik Yüzdesini Artırabilirsiniz)';
+      } else if (state.selectedDept) {
+        emptyMsg = 'Seçili Kriterlerde Kayıt Bulunamadı';
+      }
       trendChart.clear();
       trendChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Lütfen Önce Bir Bölüm Seçiniz' : 'Seçili Üniversite Yok (Üniversite Seçiniz)',
+          text: emptyMsg,
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
@@ -668,12 +699,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const tc = getThemeColors();
     const isMobile = window.innerWidth <= 768;
 
-    if (!state.selectedDept || filtered.length === 0) {
+    if (filtered.length === 0) {
       radarChart.clear();
       radarChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Bölüm Seçilmedi' : 'Seçili Üniversite Yok',
+          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
@@ -755,12 +786,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const uniData = filtered[0];
     const tc = getThemeColors();
 
-    if (!state.selectedDept || !uniData) {
+    if (!uniData) {
       rangeChart.clear();
       rangeChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Bölüm Seçilmedi' : 'Seçili Üniversite Yok',
+          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
@@ -833,12 +864,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const years = YKS_DATABASE.years;
     const tc = getThemeColors();
 
-    if (!state.selectedDept || filtered.length === 0) {
+    if (filtered.length === 0) {
       quotaChart.clear();
       quotaChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Bölüm Seçilmedi' : 'Seçili Üniversite Yok',
+          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
