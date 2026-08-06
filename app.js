@@ -551,7 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    const sc = r.scholarship ? r.scholarship.trim() : '';
+    const isStateUni = uni && uni.type === 'Devlet';
+    const sc = isStateUni ? 'Ücretsiz' : (r.scholarship ? r.scholarship.trim() : '');
     if (sc && sc !== 'Genel' && sc !== 'Ücretsiz' && !tags.includes(sc)) {
       tags.push(sc);
     } else if (sc && tags.length === 0) {
@@ -953,16 +954,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `<span style="color:var(--accent-green)">▲ +${rankDiff.toLocaleString()} sıra yükseldi</span>` 
         : (rankDiff < 0 ? `<span style="color:var(--accent-magenta)">▼ ${rankDiff.toLocaleString()}</span>` : '-');
 
+      const isStateUni = uni && uni.type === 'Devlet';
+      const displayScholarship = isStateUni ? 'Ücretsiz' : (r.scholarship || 'Ücretsiz');
+
       let bursClass = 'burs-badge';
-      if (r.scholarship === 'Burslu') bursClass += ' burslu';
-      else if (r.scholarship === '%50 İndirimli') bursClass += ' indirim50';
-      else if (r.scholarship === 'Ücretli') bursClass += ' ucretli';
+      if (displayScholarship === 'Burslu') bursClass += ' burslu';
+      else if (displayScholarship === '%50 İndirimli') bursClass += ' indirim50';
+      else if (displayScholarship === 'Ücretli') bursClass += ' ucretli';
+      else bursClass += ' ucretsiz';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><b>${uni ? uni.name : r.uniId}</b></td>
         <td>${dept ? dept.name : r.depId}</td>
-        <td><span class="${bursClass}">${r.scholarship}</span></td>
+        <td><span class="${bursClass}">${displayScholarship}</span></td>
         <td><span class="rank-badge">${(latestData.rank && latestData.rank > 0) ? '#' + latestData.rank.toLocaleString() : '-'}</span></td>
         <td><span class="score-badge">${latestData.baseScore ? latestData.baseScore : '-'}</span></td>
         <td>${latestData.quota ? latestData.quota : '-'}</td>

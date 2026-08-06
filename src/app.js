@@ -15,7 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     targetValue: null,
     targetMetric: 'rank',
     targetTolerance: 10,
-    targetDirection: 'both'
+    targetDirection: 'both',
+    // Table Sorting State
+    sortField: 'rank',
+    sortOrder: 'asc'
   };
 
   // ECharts Instances
@@ -262,6 +265,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (popover) popover.classList.toggle('show');
+      });
+    });
+
+    // Table Column Sort Event Listeners
+    const sortableHeaders = document.querySelectorAll('.sortable-th');
+    sortableHeaders.forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.getAttribute('data-sort');
+        if (state.sortField === field) {
+          state.sortOrder = state.sortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+          state.sortField = field;
+          state.sortOrder = 'asc';
+        }
+
+        // Update header UI icons & classes
+        sortableHeaders.forEach(h => {
+          h.classList.remove('active-sort');
+          const icon = h.querySelector('.sort-icon');
+          if (icon) icon.className = 'fa-solid fa-sort sort-icon';
+        });
+
+        th.classList.add('active-sort');
+        const currentIcon = th.querySelector('.sort-icon');
+        if (currentIcon) {
+          currentIcon.className = `fa-solid fa-sort-${state.sortOrder === 'asc' ? 'up' : 'down'} sort-icon`;
+        }
+
+        renderTable();
       });
     });
 
@@ -519,7 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    const sc = r.scholarship ? r.scholarship.trim() : '';
+    const isStateUni = uni && uni.type === 'Devlet';
+    const sc = isStateUni ? 'Ücretsiz' : (r.scholarship ? r.scholarship.trim() : '');
     if (sc && sc !== 'Genel' && sc !== 'Ücretsiz' && !tags.includes(sc)) {
       tags.push(sc);
     } else if (sc && tags.length === 0) {
@@ -841,14 +874,75 @@ document.addEventListener('DOMContentLoaded', () => {
     quotaChart.setOption(option, true);
   }
 
+  function sortRecords(records) {
+    const field = state.sortField || 'rank';
+    const order = state.sortOrder || 'asc';
+    const mult = order === 'asc' ? 1 : -1;
+
+    return [...records].sort((a, b) => {
+      const uniA = YKS_DATABASE.universities.find(u => u.id === a.uniId);
+      const uniB = YKS_DATABASE.universities.find(u => u.id === b.uniId);
+      const deptA = YKS_DATABASE.departments.find(d => d.id === a.depId);
+      const deptB = YKS_DATABASE.departments.find(d => d.id === b.depId);
+
+      const latestA = a.data[2025] || a.data[2024] || a.data[2023] || {};
+      const latestB = b.data[2025] || b.data[2024] || b.data[2023] || {};
+      const prevA = a.data[2024] || a.data[2023] || a.data[2022] || {};
+      const prevB = b.data[2024] || b.data[2023] || b.data[2022] || {};
+
+      let valA, valB;
+
+      switch (field) {
+        case 'uniName':
+          valA = uniA ? uniA.name.trim() : '';
+          valB = uniB ? uniB.name.trim() : '';
+          return valA.localeCompare(valB, 'tr') * mult;
+
+        case 'deptName':
+          valA = deptA ? deptA.name.trim() : '';
+          valB = deptB ? deptB.name.trim() : '';
+          return valA.localeCompare(valB, 'tr') * mult;
+
+        case 'scholarship':
+          valA = a.scholarship || '';
+          valB = b.scholarship || '';
+          return valA.localeCompare(valB, 'tr') * mult;
+
+        case 'rank':
+          valA = (latestA.rank && latestA.rank > 0) ? latestA.rank : 9999999;
+          valB = (latestB.rank && latestB.rank > 0) ? latestB.rank : 9999999;
+          return (valA - valB) * mult;
+
+        case 'baseScore':
+          valA = (latestA.baseScore && latestA.baseScore > 0) ? latestA.baseScore : -1;
+          valB = (latestB.baseScore && latestB.baseScore > 0) ? latestB.baseScore : -1;
+          return (valA - valB) * mult;
+
+        case 'quota':
+          valA = latestA.quota || 0;
+          valB = latestB.quota || 0;
+          return (valA - valB) * mult;
+
+        case 'rankDiff':
+          valA = (prevA.rank && latestA.rank) ? prevA.rank - latestA.rank : -9999999;
+          valB = (prevB.rank && latestB.rank) ? prevB.rank - latestB.rank : -9999999;
+          return (valA - valB) * mult;
+
+        default:
+          return 0;
+      }
+    });
+  }
+
   // 6. Data Table Render
   function renderTable() {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
     const filtered = getFilteredRecords();
+    const sorted = sortRecords(filtered);
 
-    filtered.forEach(r => {
+    sorted.forEach(r => {
       const uni = YKS_DATABASE.universities.find(u => u.id === r.uniId);
       const dept = YKS_DATABASE.departments.find(d => d.id === r.depId);
       
@@ -860,16 +954,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `<span style="color:var(--accent-green)">▲ +${rankDiff.toLocaleString()} sıra yükseldi</span>` 
         : (rankDiff < 0 ? `<span style="color:var(--accent-magenta)">▼ ${rankDiff.toLocaleString()}</span>` : '-');
 
+      const isStateUni = uni && uni.type === 'Devlet';
+      const displayScholarship = isStateUni ? 'Ücretsiz' : (r.scholarship || 'Ücretsiz');
+
       let bursClass = 'burs-badge';
-      if (r.scholarship === 'Burslu') bursClass += ' burslu';
-      else if (r.scholarship === '%50 İndirimli') bursClass += ' indirim50';
-      else if (r.scholarship === 'Ücretli') bursClass += ' ucretli';
+      if (displayScholarship === 'Burslu') bursClass += ' burslu';
+      else if (displayScholarship === '%50 İndirimli') bursClass += ' indirim50';
+      else if (displayScholarship === 'Ücretli') bursClass += ' ucretli';
+      else bursClass += ' ucretsiz';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><b>${uni ? uni.name : r.uniId}</b></td>
         <td>${dept ? dept.name : r.depId}</td>
-        <td><span class="${bursClass}">${r.scholarship}</span></td>
+        <td><span class="${bursClass}">${displayScholarship}</span></td>
         <td><span class="rank-badge">${(latestData.rank && latestData.rank > 0) ? '#' + latestData.rank.toLocaleString() : '-'}</span></td>
         <td><span class="score-badge">${latestData.baseScore ? latestData.baseScore : '-'}</span></td>
         <td>${latestData.quota ? latestData.quota : '-'}</td>
