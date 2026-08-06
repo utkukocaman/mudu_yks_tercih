@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YKS Veri Analitiği Portalı (2015-2025) | YKS Analytics Dashboard</title>
+  <meta name="description" content="2015-2025 YKS üniversite taban puanları, başarı sıralamaları ve kontenjanlarının interaktif karşılaştırmalı veri görselleştirme portalı.">
+  
+  <!-- Stylesheets & Fonts -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- ECharts Library -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Header Navigation with Theme Toggle Button -->
+  <header class="app-header">
+    <div class="brand-title">
+      <div class="brand-logo">
+        <i class="fa-solid fa-chart-line"></i>
+      </div>
+      <div class="brand-text">
+        <h1>YKS Analytics Portal</h1>
+        <p>2015 - 2025 Veri Grafik Şöleni</p>
+      </div>
+    </div>
+
+    <!-- Theme Switcher Action -->
+    <div class="header-actions">
+      <button type="button" class="btn-theme-toggle" id="btnThemeToggle" title="Temayı Değiştir">
+        <i class="fa-solid fa-moon" id="themeIcon"></i>
+        <span id="themeToggleText">Koyu Tema</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Dashboard Content -->
+  <main class="dashboard-container">
+
+    <!-- Global Interactive Filter Card -->
+    <section class="filter-card">
+
+      <!-- Modern Dropdown with Search for Department -->
+      <div class="filter-group">
+        <label><i class="fa-solid fa-book-open"></i> İncelenecek Bölüm</label>
+        <div class="custom-dropdown" id="deptDropdown">
+          <button type="button" class="dropdown-trigger" id="deptDropdownBtn">
+            <span id="deptDropdownLabel"><i class="fa-solid fa-book-bookmark"></i> Bölüm Seçiniz...</span>
+            <i class="fa-solid fa-chevron-down arrow-icon"></i>
+          </button>
+          
+          <div class="dropdown-menu" id="deptDropdownMenu">
+            <div class="dropdown-header-actions">
+              <input type="text" id="deptSearchInput" class="custom-input search-sm" placeholder="🔍 Bölüm Ara... (Örn: Tasarım, Yazılım, Tıp)">
+            </div>
+            <div class="dropdown-list" id="deptRadioList">
+              <!-- Populated dynamically by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modern Dropdown with Checkboxes for Universities -->
+      <div class="filter-group">
+        <label><i class="fa-solid fa-university"></i> Karşılaştırılacak Üniversiteler</label>
+        <div class="custom-dropdown" id="uniDropdown">
+          <button type="button" class="dropdown-trigger" id="uniDropdownBtn">
+            <span id="uniDropdownLabel"><i class="fa-solid fa-building-columns"></i> Önce Bölüm Seçiniz...</span>
+            <span class="badge-count" id="uniSelectCount">0 Seçili</span>
+            <i class="fa-solid fa-chevron-down arrow-icon"></i>
+          </button>
+          
+          <div class="dropdown-menu" id="uniDropdownMenu">
+            <div class="dropdown-header-actions">
+              <input type="text" id="uniSearchInput" class="custom-input search-sm" placeholder="🔍 Üniversite Ara...">
+              <div class="action-buttons">
+                <button type="button" class="btn-action-sm" id="btnSelectAllUnis">
+                  <i class="fa-solid fa-check-double"></i> Tümünü Seç
+                </button>
+                <button type="button" class="btn-action-sm danger" id="btnClearAllUnis">
+                  <i class="fa-solid fa-xmark"></i> Tümünü İptal Et
+                </button>
+              </div>
+            </div>
+            <div class="dropdown-list" id="uniCheckboxList">
+              <!-- Populated dynamically by JS with Checkboxes -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scholarship Toggle Switch Bar -->
+      <div class="filter-group full-width">
+        <label><i class="fa-solid fa-tags"></i> Vakıf & Burs Türü Filtre Anahtarları (Aç / Kapat)</label>
+        <div class="scholarship-toggles" id="scholarshipToggleGroup">
+          <button class="btn-toggle-burs active" data-burs="Burslu">
+            <i class="fa-solid fa-graduation-cap"></i> Burslu (%100)
+          </button>
+          <button class="btn-toggle-burs active" data-burs="%50 İndirimli">
+            <i class="fa-solid fa-circle-half-stroke"></i> %50 İndirimli
+          </button>
+          <button class="btn-toggle-burs" data-burs="%25 İndirimli">
+            <i class="fa-solid fa-percent"></i> %25 İndirimli
+          </button>
+          <button class="btn-toggle-burs" data-burs="Ücretli">
+            <i class="fa-solid fa-credit-card"></i> Ücretli (Burssuz)
+          </button>
+          <button class="btn-toggle-burs active" data-burs="Ücretsiz">
+            <i class="fa-solid fa-building-columns"></i> Devlet / Ücretsiz
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPI Metrics Grid (Initial Blank State) -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">Seçili Bölüm</span>
+          <i class="fa-solid fa-award kpi-icon"></i>
+        </div>
+        <div class="kpi-value" id="kpiSelectedDept">Seçilmedi</div>
+        <div class="kpi-subtext"><i class="fa-solid fa-info-circle"></i> Lütfen Bölüm Seçin</div>
+      </div>
+
+      <div class="kpi-card green">
+        <div class="kpi-header">
+          <span class="kpi-title">En Yüksek Başarı Sırası</span>
+          <i class="fa-solid fa-trophy kpi-icon" style="color:var(--accent-green)"></i>
+        </div>
+        <div class="kpi-value" id="kpiMinRank">-</div>
+        <div class="kpi-subtext"><i class="fa-solid fa-arrow-trend-up"></i> 10 Yılın En İyisi</div>
+      </div>
+
+      <div class="kpi-card purple">
+        <div class="kpi-header">
+          <span class="kpi-title">En Yüksek Taban Puan</span>
+          <i class="fa-solid fa-fire kpi-icon" style="color:var(--accent-purple)"></i>
+        </div>
+        <div class="kpi-value" id="kpiMaxScore">-</div>
+        <div class="kpi-subtext"><i class="fa-solid fa-bolt"></i> Zirve Puan</div>
+      </div>
+    </section>
+
+    <!-- Primary Charts Row (Line Chart + Radar Chart) -->
+    <section class="charts-grid-primary">
+      
+      <!-- Trend Line Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title-area">
+            <h3><i class="fa-solid fa-chart-area" style="color:var(--accent-cyan)"></i> 2015-2025 Tarihsel Trend Grafiği</h3>
+            <p>Seçilen üniversitelerin burs tiplerine göre 10 yıllık taban puan ve sıralama ivmesi</p>
+          </div>
+          <div class="chart-actions">
+            <button class="btn-toggle active" id="btnMetricRank">Başarı Sıralaması</button>
+            <button class="btn-toggle" id="btnMetricScore">Taban Puan</button>
+          </div>
+        </div>
+        <div id="trendChart" class="chart-box"></div>
+      </div>
+
+      <!-- Radar Comparison Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title-area">
+            <h3><i class="fa-solid fa-compass" style="color:var(--accent-purple)"></i> 360° Metrik Radar Analizi</h3>
+            <p>Burs tiplerine göre çok boyutlu yetkinlik ve performans kıyaslaması (2025)</p>
+          </div>
+        </div>
+        <div id="radarChart" class="chart-box"></div>
+      </div>
+
+    </section>
+
+    <!-- Secondary Charts Row (Range Chart + Quota Bar Chart) -->
+    <section class="charts-grid-secondary">
+
+      <!-- Range Band Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title-area">
+            <h3><i class="fa-solid fa-sliders" style="color:var(--accent-green)"></i> Tavan vs Taban Puan Makası</h3>
+            <p>Birinci giren ve son giren öğrenci puan farkı homojenliği</p>
+          </div>
+        </div>
+        <div id="rangeChart" class="chart-box"></div>
+      </div>
+
+      <!-- Quota Bar Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title-area">
+            <h3><i class="fa-solid fa-chart-column" style="color:var(--accent-amber)"></i> Yıllık Kontenjan Değişimi</h3>
+            <p>Üniversitelerin ve burs tiplerinin kontenjan kapasitelerindeki 10 yıllık devinim</p>
+          </div>
+        </div>
+        <div id="quotaChart" class="chart-box"></div>
+      </div>
+
+    </section>
+
+    <!-- Detailed Data Table -->
+    <section class="table-card">
+      <div class="chart-header">
+        <div class="chart-title-area">
+          <h3><i class="fa-solid fa-table-list" style="color:var(--accent-cyan)"></i> Üniversite & Bölüm Karşılaştırmalı Detay Tablosu</h3>
+          <p>Burs ve Ücret Seçeneklerine Göre YKS Veri Dökümü</p>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="yks-table">
+          <thead>
+            <tr>
+              <th>Üniversite</th>
+              <th>Bölüm</th>
+              <th>Burs / Ücret Türü</th>
+              <th>2025 Başarı Sırası</th>
+              <th>2025 Taban Puan</th>
+              <th>Kontenjan</th>
+              <th>Yıllık İvme / Değişim</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- App Footer with Centered logo.png & Data Attribution -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="designed-by-brand">
+        <span class="footer-brand-text">3Deli Design Division &copy; 2026</span>
+        <img src="logo.png" alt="3Deli Logo" class="brand-footer-logo">
+      </div>
+      <div class="data-attribution">
+        <p>Veri Seti Katkısı: <a href="https://github.com/kocer-burak/yks-grafik-arsivi-2018-2025" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github"></i> Burak Koçer (YKS Grafik Arşivi)</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts: Data split into 5 parts (~4-5MB each) for GitHub Pages compatibility -->
+  <script src="yks_data_base.js"></script>
+  <script src="yks_records_0.js"></script>
+  <script src="yks_records_1.js"></script>
+  <script src="yks_records_2.js"></script>
+  <script src="yks_records_3.js"></script>
+  <script>
+    // Merge all parts into YKS_DATABASE for app.js compatibility
+    const YKS_DATABASE = Object.assign({}, YKS_BASE, {
+      records: [...YKS_RECORDS_PART0, ...YKS_RECORDS_PART1, ...YKS_RECORDS_PART2, ...YKS_RECORDS_PART3]
+    });
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
