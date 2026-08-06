@@ -708,7 +708,7 @@ table.yks-table tbody tr:hover {
   border-color: rgba(255, 8, 68, 0.3);
 }
 
-/* Footer Designed by 3Deli Brand (Text on top, Logo Centered Below) */
+/* Footer Designed by 3Deli Brand (Text on top, Logo Centered Below + Attribution) */
 .app-footer {
   text-align: center;
   padding: 3rem 2rem;
@@ -724,6 +724,7 @@ table.yks-table tbody tr:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
 }
 
 .designed-by-brand {
@@ -757,6 +758,23 @@ table.yks-table tbody tr:hover {
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.4));
+}
+
+.data-attribution {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.data-attribution a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-weight: 600;
+  transition: var(--transition-fast);
+}
+
+.data-attribution a:hover {
+  color: var(--accent-blue);
+  text-decoration: underline;
 }
 
 /* Perfect Mobile Responsive Media Queries */

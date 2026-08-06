@@ -24,6 +24,13 @@ Sitemize doğrudan erişmek için:
 
 ---
 
+## 🙏 Veri Seti & Teşekkür (Acknowledgements)
+
+Bu projedeki tarihsel veri setinin derlenmesinde gösterdiği emek ve açık kaynak katkısı için **Burak Koçer**'e teşekkür ederiz.
+* 📦 **Veri Kaynağı Deposu:** [Burak Koçer - YKS Grafik Arşivi (2018-2025)](https://github.com/kocer-burak/yks-grafik-arsivi-2018-2025)
+
+---
+
 ## 🚀 Teknolojik Mimari
 
 * **HTML5 & Vanilla CSS3:** Modern glassmorphism estetiği, CSS variables ve dinamik responsive tasarım.
