@@ -466,43 +466,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (metric === 'rank') {
           // Sıralama Metriği: Küçük sayılar daha iyi (örn: 35, 1.000, 50.000)
-          // Derece yapılan sıralamalarda (örn: 35. sıra) dar aralık kalmaması için akıllı esneklik bandı uygulanır.
-          const percentSpan = targetVal * tolRatio;
-          const effectiveSpan = Math.max(percentSpan, tolPercent > 0 ? 2500 : 200);
+          // Adayın sıralaması (targetVal), yerleşebileceği tüm yerlerin doğal hakkıdır (yani targetVal'dan daha büyük sıralı TÜM üniversiteler - Boğaziçi, ODTÜ, İTÜ, Afyon vb. hepsi kazanılabilir!).
+          // Üst hedeflerde (daha iyi sıralı yerlerde) ise seçilen esneklik yüzdesi (%10 vb.) uygulanır.
+          const reachMinRank = Math.max(1, targetVal * (1 - tolRatio));
 
           if (tolPercent === 0) {
-            const minR = Math.max(1, targetVal - 500);
-            const maxR = targetVal + 500;
-            return val >= minR && val <= maxR;
+            // %0 Toleransta: Adayın sırasıyla rahatlıkla kazanabildiği tüm yerler
+            return val >= targetVal;
           }
 
-          const minRank = Math.max(1, targetVal - effectiveSpan);
-          const maxRank = targetVal + effectiveSpan;
-
-          if (direction === 'both') {
-            return val >= minRank && val <= maxRank;
-          } else if (direction === 'safe') { // Güvenli / Sıralama Düşerse
-            return val >= targetVal && val <= Math.max(maxRank, targetVal + 10000);
-          } else if (direction === 'reach') { // Yüksek hedef
-            return val >= minRank && val <= targetVal;
+          if (direction === 'both' || direction === 'safe') {
+            // "Dengeli" veya "Güvenli": Adayın girebildiği TÜM üniversiteler (Afyon, Kocatepe, ODTÜ, Boğaziçi dahil) + kıl payı hedefleyebileceği (%10 bandı) üst hedefler!
+            return val >= reachMinRank;
+          } else if (direction === 'reach') { // Yalnızca Yüksek Hedef
+            return val >= reachMinRank && val <= targetVal;
           }
         } else {
-          // Taban Puan Metriği: Büyük sayılar daha iyi (örn: 450, 550)
-          const percentSpan = targetVal * tolRatio;
-          const effectiveSpan = Math.max(percentSpan, tolPercent > 0 ? 15 : 5);
+          // Taban Puan Metriği: Büyük sayılar daha iyi (örn: 450)
+          // Adayın puanından düşük taban puanlı tüm yerler adayın yerleşebileceği garanti yerlerdir.
+          const reachMaxScore = targetVal * (1 + tolRatio);
 
           if (tolPercent === 0) {
-            return Math.abs(val - targetVal) <= 5;
+            return val <= targetVal;
           }
-          const minScore = targetVal - effectiveSpan;
-          const maxScore = targetVal + effectiveSpan;
 
-          if (direction === 'both') {
-            return val >= minScore && val <= maxScore;
-          } else if (direction === 'safe') { // Puan düşerse
-            return val <= targetVal && val >= minScore;
-          } else if (direction === 'reach') { // Yüksek hedef
-            return val >= targetVal && val <= maxScore;
+          if (direction === 'both' || direction === 'safe') {
+            return val <= reachMaxScore;
+          } else if (direction === 'reach') { // Yalnızca Yüksek Hedef
+            return val >= targetVal && val <= reachMaxScore;
           }
         }
         return true;
