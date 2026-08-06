@@ -10,7 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
     metricType: 'rank', // 'rank' or 'baseScore'
     selectedUnis: [], // Starts completely empty
     selectedDept: '', // Initialized empty
-    selectedScholarships: ['Burslu', '%50 İndirimli', 'Ücretsiz', 'Genel']
+    selectedScholarships: ['Burslu', '%50 İndirimli', 'Ücretsiz', 'Genel'],
+    // Tercih Robotu & Hedef Filtresi State
+    targetValue: null,
+    targetMetric: 'rank',
+    targetTolerance: 10,
+    targetDirection: 'both'
   };
 
   // ECharts Instances
@@ -189,6 +194,85 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // ==========================================
+    // Tercih Robotu & Hedef Filtre Olay Dinleyicileri
+    // ==========================================
+    const targetValueInput = document.getElementById('targetValueInput');
+    const targetMetricType = document.getElementById('targetMetricType');
+    const targetToleranceInput = document.getElementById('targetToleranceInput');
+    const targetDirectionSelect = document.getElementById('targetDirectionSelect');
+    const btnResetTargetFilter = document.getElementById('btnResetTargetFilter');
+
+    if (targetValueInput) {
+      targetValueInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        state.targetValue = val !== '' ? parseFloat(val) : null;
+        renderAll();
+      });
+    }
+
+    if (targetMetricType) {
+      targetMetricType.addEventListener('change', (e) => {
+        state.targetMetric = e.target.value;
+        renderAll();
+      });
+    }
+
+    if (targetToleranceInput) {
+      targetToleranceInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        state.targetTolerance = val !== '' ? parseFloat(val) : 0;
+        renderAll();
+      });
+    }
+
+    if (targetDirectionSelect) {
+      targetDirectionSelect.addEventListener('change', (e) => {
+        state.targetDirection = e.target.value;
+        renderAll();
+      });
+    }
+
+    if (btnResetTargetFilter) {
+      btnResetTargetFilter.addEventListener('click', () => {
+        state.targetValue = null;
+        state.targetTolerance = 10;
+        state.targetMetric = 'rank';
+        state.targetDirection = 'both';
+
+        if (targetValueInput) targetValueInput.value = '';
+        if (targetToleranceInput) targetToleranceInput.value = '10';
+        if (targetMetricType) targetMetricType.value = 'rank';
+        if (targetDirectionSelect) targetDirectionSelect.value = 'both';
+
+        renderAll();
+      });
+    }
+
+    // Info Popover Toggle Listeners (?)
+    const infoBtns = document.querySelectorAll('.info-icon-btn');
+    infoBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const infoId = btn.getAttribute('data-info');
+        const popover = document.getElementById(infoId);
+        
+        // Close all other popovers
+        document.querySelectorAll('.info-popover').forEach(p => {
+          if (p !== popover) p.classList.remove('show');
+        });
+
+        if (popover) popover.classList.toggle('show');
+      });
+    });
+
+    // Close popovers on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.info-popover') && !e.target.closest('.info-icon-btn')) {
+        document.querySelectorAll('.info-popover').forEach(p => p.classList.remove('show'));
+      }
+    });
+
     window.addEventListener('resize', () => {
       if (trendChart) trendChart.resize();
       if (radarChart) radarChart.resize();
@@ -337,14 +421,72 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Helper Functions to filter data by University, Dept AND Scholarship Toggle
+  // Helper Functions to filter data by University, Dept, Scholarship AND Target Robot Filters
   function getFilteredRecords() {
     if (!state.selectedDept) return [];
-    return YKS_DATABASE.records.filter(r => 
+
+    let records = YKS_DATABASE.records.filter(r => 
       state.selectedUnis.includes(r.uniId) && 
       r.depId === state.selectedDept &&
       state.selectedScholarships.includes(r.scholarship)
     );
+
+    // Target Robot Filtering Logic
+    if (state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0) {
+      const targetVal = parseFloat(state.targetValue);
+      const tolPercent = parseFloat(state.targetTolerance) || 0;
+      const tolRatio = tolPercent / 100;
+      const metric = state.targetMetric || 'rank';
+      const direction = state.targetDirection || 'both';
+
+      records = records.filter(r => {
+        // Find latest valid metric value (2025, 2024, 2023...)
+        let val = null;
+        for (let i = YKS_DATABASE.years.length - 1; i >= 0; i--) {
+          const yr = YKS_DATABASE.years[i];
+          if (r.data && r.data[yr] && r.data[yr][metric] !== undefined && r.data[yr][metric] !== null && r.data[yr][metric] > 0) {
+            val = r.data[yr][metric];
+            break;
+          }
+        }
+        if (val === null) return false;
+
+        if (metric === 'rank') {
+          // Rank Metric: Smaller numbers are better (e.g. 10.000 is better than 100.000)
+          if (tolPercent === 0) {
+            return Math.abs(val - targetVal) / targetVal <= 0.03; // Exact match within 3%
+          }
+          const minRank = Math.max(1, targetVal * (1 - tolRatio));
+          const maxRank = targetVal * (1 + tolRatio);
+
+          if (direction === 'both') {
+            return val >= minRank && val <= maxRank;
+          } else if (direction === 'safe') { // Puan/sıralama düşerse
+            return val >= targetVal && val <= maxRank;
+          } else if (direction === 'reach') { // Yüksek hedef
+            return val >= minRank && val <= targetVal;
+          }
+        } else {
+          // BaseScore Metric: Larger numbers are better (e.g. 450 is better than 400)
+          if (tolPercent === 0) {
+            return Math.abs(val - targetVal) / targetVal <= 0.01;
+          }
+          const minScore = targetVal * (1 - tolRatio);
+          const maxScore = targetVal * (1 + tolRatio);
+
+          if (direction === 'both') {
+            return val >= minScore && val <= maxScore;
+          } else if (direction === 'safe') { // Puan düşerse
+            return val <= targetVal && val >= minScore;
+          } else if (direction === 'reach') { // Yüksek hedef
+            return val >= targetVal && val <= maxScore;
+          }
+        }
+        return true;
+      });
+    }
+
+    return records;
   }
 
   function getProgramSeriesName(r) {
