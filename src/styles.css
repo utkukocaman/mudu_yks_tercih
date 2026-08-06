@@ -368,7 +368,8 @@ body.light-mode .designed-by-brand {
 .dropdown-item-checkbox, .dropdown-item-radio {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 0.75rem;
   padding: 0.55rem 0.75rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -376,6 +377,12 @@ body.light-mode .designed-by-brand {
   color: var(--text-main);
   transition: var(--transition-fast);
   user-select: none;
+  text-align: left;
+}
+
+.dropdown-item-checkbox span, .dropdown-item-radio span {
+  text-align: left;
+  flex: 1;
 }
 
 .dropdown-item-checkbox:hover, .dropdown-item-radio:hover {
