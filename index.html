@@ -246,8 +246,18 @@
     </div>
   </footer>
 
-  <!-- Scripts -->
-  <script src="yks_data.js"></script>
+  <!-- Scripts: Data split into 5 parts (~4-5MB each) for GitHub Pages compatibility -->
+  <script src="yks_data_base.js"></script>
+  <script src="yks_records_0.js"></script>
+  <script src="yks_records_1.js"></script>
+  <script src="yks_records_2.js"></script>
+  <script src="yks_records_3.js"></script>
+  <script>
+    // Merge all parts into YKS_DATABASE for app.js compatibility
+    const YKS_DATABASE = Object.assign({}, YKS_BASE, {
+      records: [...YKS_RECORDS_PART0, ...YKS_RECORDS_PART1, ...YKS_RECORDS_PART2, ...YKS_RECORDS_PART3]
+    });
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
