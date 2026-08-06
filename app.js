@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isChecked = state.selectedUnis.includes(uni.id);
       label.innerHTML = `
         <input type="checkbox" value="${uni.id}" ${isChecked ? 'checked' : ''}>
-        <span>${uni.name} <small style="color:var(--text-dim)">[${uni.type} - ${uni.city}]</small></span>
+        <span>${uni.name.trim()} <small style="color:var(--text-dim)">[${uni.type} - ${uni.city.trim()}]</small></span>
       `;
 
       const cb = label.querySelector('input');
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Üniversiteleri Seçin...`;
       } else if (count === 1) {
         const uni = YKS_DATABASE.universities.find(u => u.id === state.selectedUnis[0]);
-        labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${uni ? uni.name : '1 Üniversite'}`;
+        labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${uni ? uni.name.trim() : '1 Üniversite'}`;
       } else {
         labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${count} Üniversite Karşılaştırılıyor`;
       }
@@ -348,10 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getProgramSeriesName(r) {
+    if (!r) return '';
     const uni = YKS_DATABASE.universities.find(u => u.id === r.uniId);
-    const uniName = uni ? uni.name : r.uniId;
-    if (uni && uni.type === 'VAKIF') {
-      return `${uniName} (${r.scholarship})`;
+    const uniName = uni ? uni.name.trim() : (r.uniId ? r.uniId.trim() : '');
+    const sc = r.scholarship ? r.scholarship.trim() : '';
+    if (sc) {
+      return `${uniName} (${sc})`;
     }
     return uniName;
   }
