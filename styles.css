@@ -1110,3 +1110,38 @@ body.light-mode .popover-arrow {
   border-radius: 4px;
   font-family: var(--font-code);
 }
+
+/* Sortable Table Headers */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition-fast);
+  position: relative;
+}
+
+.sortable-th:hover {
+  color: var(--accent-cyan) !important;
+  background: rgba(2, 132, 199, 0.08);
+}
+
+.sortable-th.active-sort {
+  color: var(--accent-cyan) !important;
+  font-weight: 800;
+}
+
+.sort-icon {
+  font-size: 0.75rem;
+  margin-left: 0.35rem;
+  opacity: 0.5;
+  transition: var(--transition-fast);
+}
+
+.sortable-th:hover .sort-icon {
+  opacity: 1;
+  color: var(--accent-cyan);
+}
+
+.sortable-th.active-sort .sort-icon {
+  opacity: 1;
+  color: var(--accent-cyan);
+}
