@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // ECharts Instances
   let trendChart = null;
   let radarChart = null;
-  let rangeChart = null;
   let quotaChart = null;
 
   // Initialize App in STRICT correct order
@@ -276,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
       if (trendChart) trendChart.resize();
       if (radarChart) radarChart.resize();
-      if (rangeChart) rangeChart.resize();
       if (quotaChart) quotaChart.resize();
       renderRadarChart(); // Re-calculate radar radius dynamically
     });
@@ -390,12 +388,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function initCharts() {
     const elTrend = document.getElementById('trendChart');
     const elRadar = document.getElementById('radarChart');
-    const elRange = document.getElementById('rangeChart');
     const elQuota = document.getElementById('quotaChart');
 
     if (elTrend) trendChart = echarts.init(elTrend);
     if (elRadar) radarChart = echarts.init(elRadar);
-    if (elRange) rangeChart = echarts.init(elRange);
     if (elQuota) quotaChart = echarts.init(elQuota);
   }
 
@@ -403,7 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderKPIs();
     renderTrendChart();
     renderRadarChart();
-    renderRangeChart();
     renderQuotaChart();
     renderTable();
   }
@@ -780,83 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
     radarChart.setOption(option, true);
   }
 
-  // 4. Ceiling vs Base Score Band Area Chart
-  function renderRangeChart() {
-    if (!rangeChart) return;
-    const filtered = getFilteredRecords();
-    const uniData = filtered[0];
-    const tc = getThemeColors();
 
-    if (!uniData) {
-      rangeChart.clear();
-      rangeChart.setOption({
-        backgroundColor: 'transparent',
-        title: {
-          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
-          textStyle: { color: tc.axisColor, fontSize: 13 },
-          left: 'center',
-          top: 'center'
-        }
-      });
-      return;
-    }
-
-    const seriesName = getProgramSeriesName(uniData);
-    const years = YKS_DATABASE.years;
-    
-    const baseScores = years.map(y => (uniData.data[y] && uniData.data[y].baseScore) ? uniData.data[y].baseScore : null);
-    const ceilingScores = years.map(y => (uniData.data[y] && uniData.data[y].ceilingScore) ? uniData.data[y].ceilingScore : null);
-
-    const option = {
-      backgroundColor: 'transparent',
-      title: {
-        text: `${seriesName} - Tavan vs Taban Puan Makası`,
-        textStyle: { color: tc.axisColor, fontSize: 12 },
-        left: 'center'
-      },
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: tc.tooltipBg,
-        borderColor: tc.tooltipBorder,
-        textStyle: { color: tc.textColor }
-      },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: years,
-        axisLine: { lineStyle: { color: tc.tooltipBorder } },
-        axisLabel: { color: tc.axisColor }
-      },
-      yAxis: {
-        type: 'value',
-        min: 150,
-        max: 600,
-        axisLine: { lineStyle: { color: tc.tooltipBorder } },
-        splitLine: { lineStyle: { color: tc.splitLine } },
-        axisLabel: { color: tc.axisColor }
-      },
-      series: [
-        {
-          name: 'Taban Puan (Son Giren)',
-          type: 'line',
-          data: baseScores,
-          connectNulls: true,
-          lineStyle: { color: '#e11d48', width: 2 },
-          itemStyle: { color: '#e11d48' }
-        },
-        {
-          name: 'Tavan Puan (1. Giren)',
-          type: 'line',
-          data: ceilingScores,
-          connectNulls: true,
-          lineStyle: { color: '#16a34a', width: 2 },
-          itemStyle: { color: '#16a34a' }
-        }
-      ]
-    };
-
-    rangeChart.setOption(option, true);
-  }
 
   // 5. Quota vs Filled Bar Chart
   function renderQuotaChart() {
