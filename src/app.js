@@ -10,7 +10,12 @@ document.addEventListener('DOMContentLoaded', () => {
     metricType: 'rank', // 'rank' or 'baseScore'
     selectedUnis: [], // Starts completely empty
     selectedDept: '', // Initialized empty
-    selectedScholarships: ['Burslu', '%50 İndirimli', 'Ücretsiz', 'Genel']
+    selectedScholarships: ['Burslu', '%50 İndirimli', 'Ücretsiz', 'Genel'],
+    // Tercih Robotu & Hedef Filtresi State
+    targetValue: null,
+    targetMetric: 'rank',
+    targetTolerance: 10,
+    targetDirection: 'both'
   };
 
   // ECharts Instances
@@ -189,6 +194,85 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // ==========================================
+    // Tercih Robotu & Hedef Filtre Olay Dinleyicileri
+    // ==========================================
+    const targetValueInput = document.getElementById('targetValueInput');
+    const targetMetricType = document.getElementById('targetMetricType');
+    const targetToleranceInput = document.getElementById('targetToleranceInput');
+    const targetDirectionSelect = document.getElementById('targetDirectionSelect');
+    const btnResetTargetFilter = document.getElementById('btnResetTargetFilter');
+
+    if (targetValueInput) {
+      targetValueInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        state.targetValue = val !== '' ? parseFloat(val) : null;
+        renderAll();
+      });
+    }
+
+    if (targetMetricType) {
+      targetMetricType.addEventListener('change', (e) => {
+        state.targetMetric = e.target.value;
+        renderAll();
+      });
+    }
+
+    if (targetToleranceInput) {
+      targetToleranceInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        state.targetTolerance = val !== '' ? parseFloat(val) : 0;
+        renderAll();
+      });
+    }
+
+    if (targetDirectionSelect) {
+      targetDirectionSelect.addEventListener('change', (e) => {
+        state.targetDirection = e.target.value;
+        renderAll();
+      });
+    }
+
+    if (btnResetTargetFilter) {
+      btnResetTargetFilter.addEventListener('click', () => {
+        state.targetValue = null;
+        state.targetTolerance = 10;
+        state.targetMetric = 'rank';
+        state.targetDirection = 'both';
+
+        if (targetValueInput) targetValueInput.value = '';
+        if (targetToleranceInput) targetToleranceInput.value = '10';
+        if (targetMetricType) targetMetricType.value = 'rank';
+        if (targetDirectionSelect) targetDirectionSelect.value = 'both';
+
+        renderAll();
+      });
+    }
+
+    // Info Popover Toggle Listeners (?)
+    const infoBtns = document.querySelectorAll('.info-icon-btn');
+    infoBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const infoId = btn.getAttribute('data-info');
+        const popover = document.getElementById(infoId);
+        
+        // Close all other popovers
+        document.querySelectorAll('.info-popover').forEach(p => {
+          if (p !== popover) p.classList.remove('show');
+        });
+
+        if (popover) popover.classList.toggle('show');
+      });
+    });
+
+    // Close popovers on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.info-popover') && !e.target.closest('.info-icon-btn')) {
+        document.querySelectorAll('.info-popover').forEach(p => p.classList.remove('show'));
+      }
+    });
+
     window.addEventListener('resize', () => {
       if (trendChart) trendChart.resize();
       if (radarChart) radarChart.resize();
@@ -262,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const isChecked = state.selectedUnis.includes(uni.id);
       label.innerHTML = `
         <input type="checkbox" value="${uni.id}" ${isChecked ? 'checked' : ''}>
-        <span>${uni.name} <small style="color:var(--text-dim)">[${uni.type} - ${uni.city}]</small></span>
+        <span>${uni.name.trim()} <small style="color:var(--text-dim)">[${uni.type} - ${uni.city.trim()}]</small></span>
       `;
 
       const cb = label.querySelector('input');
@@ -287,17 +371,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const countBadge = document.getElementById('uniSelectCount');
     const labelSpan = document.getElementById('uniDropdownLabel');
     const count = state.selectedUnis.length;
+    const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
 
-    if (countBadge) countBadge.textContent = `${count} Seçili`;
+    if (countBadge) countBadge.textContent = count === 0 ? 'Tümü' : `${count} Seçili`;
 
     if (labelSpan) {
-      if (!state.selectedDept) {
-        labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Önce Bölüm Seçiniz...`;
-      } else if (count === 0) {
-        labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Üniversiteleri Seçin...`;
+      if (count === 0) {
+        labelSpan.innerHTML = `<i class="fa-solid fa-building-columns"></i> Tüm Üniversiteler Dahil`;
       } else if (count === 1) {
         const uni = YKS_DATABASE.universities.find(u => u.id === state.selectedUnis[0]);
-        labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${uni ? uni.name : '1 Üniversite'}`;
+        labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${uni ? uni.name.trim() : '1 Üniversite'}`;
       } else {
         labelSpan.innerHTML = `<i class="fa-solid fa-university"></i> ${count} Üniversite Karşılaştırılıyor`;
       }
@@ -332,26 +415,123 @@ document.addEventListener('DOMContentLoaded', () => {
       tooltipBorder: isLight ? '#cbd5e1' : '#2a304d',
       textColor: isLight ? '#1e293b' : '#f0f3fe',
       axisColor: isLight ? '#475569' : '#8c96b5',
-      radarAxisNameColor: isLight ? '#0f172a' : '#00f2fe', // High contrast: Dark Slate in Light Mode, Bright Cyan in Dark Mode!
+      radarAxisNameColor: isLight ? '#0f172a' : '#00f2fe',
       splitLine: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)'
     };
   }
 
-  // Helper Functions to filter data by University, Dept AND Scholarship Toggle
+  // Helper Functions to filter data by University, Dept, Scholarship AND Target Robot Filters
   function getFilteredRecords() {
-    if (!state.selectedDept) return [];
-    return YKS_DATABASE.records.filter(r => 
-      state.selectedUnis.includes(r.uniId) && 
-      r.depId === state.selectedDept &&
-      state.selectedScholarships.includes(r.scholarship)
-    );
+    const hasTargetFilter = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
+
+    // Normal modda: Bölüm seçili değilse ve Hedef Filtresi yoksa boş dizi dön.
+    if (!state.selectedDept && !hasTargetFilter) return [];
+
+    let records = YKS_DATABASE.records;
+
+    // 1. Bölüm Filtresi (Eğer bir bölüm seçildiyse)
+    if (state.selectedDept) {
+      records = records.filter(r => r.depId === state.selectedDept);
+    }
+
+    // 2. Üniversite Filtresi (Eğer kullanıcı özel üniversite seçmişse onları alır; seçmediyse TÜMÜNÜ kapsar!)
+    if (state.selectedUnis && state.selectedUnis.length > 0) {
+      records = records.filter(r => state.selectedUnis.includes(r.uniId));
+    }
+
+    // 3. Burs Tipi Filtresi
+    if (state.selectedScholarships && state.selectedScholarships.length > 0) {
+      records = records.filter(r => state.selectedScholarships.includes(r.scholarship));
+    }
+
+    // 4. Tercih Robotu & Hedef Filtresi Mantığı
+    if (hasTargetFilter) {
+      const targetVal = parseFloat(state.targetValue);
+      const tolPercent = parseFloat(state.targetTolerance) || 0;
+      const tolRatio = tolPercent / 100;
+      const metric = state.targetMetric || 'rank';
+      const direction = state.targetDirection || 'both';
+
+      records = records.filter(r => {
+        // En güncel geçerli metrik değerini bul (2025, 2024, 2023...)
+        let val = null;
+        for (let i = YKS_DATABASE.years.length - 1; i >= 0; i--) {
+          const yr = YKS_DATABASE.years[i];
+          if (r.data && r.data[yr] && r.data[yr][metric] !== undefined && r.data[yr][metric] !== null && r.data[yr][metric] > 0) {
+            val = r.data[yr][metric];
+            break;
+          }
+        }
+        if (val === null) return false;
+
+        if (metric === 'rank') {
+          // Sıralama Metriği: Küçük sayılar daha iyi (örn: 10.000, 50.000)
+          if (tolPercent === 0) {
+            return Math.abs(val - targetVal) / targetVal <= 0.05; // %0 toleransta ±%5 esneklik bandı
+          }
+          const minRank = Math.max(1, targetVal * (1 - tolRatio));
+          const maxRank = targetVal * (1 + tolRatio);
+
+          if (direction === 'both') {
+            return val >= minRank && val <= maxRank;
+          } else if (direction === 'safe') { // Sıralama düşerse (Güvenli)
+            return val >= targetVal && val <= maxRank;
+          } else if (direction === 'reach') { // Yüksek hedef
+            return val >= minRank && val <= targetVal;
+          }
+        } else {
+          // Taban Puan Metriği: Büyük sayılar daha iyi (örn: 450)
+          if (tolPercent === 0) {
+            return Math.abs(val - targetVal) / targetVal <= 0.02;
+          }
+          const minScore = targetVal * (1 - tolRatio);
+          const maxScore = targetVal * (1 + tolRatio);
+
+          if (direction === 'both') {
+            return val >= minScore && val <= maxScore;
+          } else if (direction === 'safe') { // Puan düşerse
+            return val <= targetVal && val >= minScore;
+          } else if (direction === 'reach') { // Yüksek hedef
+            return val >= targetVal && val <= maxScore;
+          }
+        }
+        return true;
+      });
+    }
+
+    return records;
   }
 
   function getProgramSeriesName(r) {
+    if (!r) return '';
     const uni = YKS_DATABASE.universities.find(u => u.id === r.uniId);
-    const uniName = uni ? uni.name : r.uniId;
-    if (uni && uni.type === 'VAKIF') {
-      return `${uniName} (${r.scholarship})`;
+    const uniName = uni ? uni.name.trim() : (r.uniId ? r.uniId.trim() : '');
+    const dept = YKS_DATABASE.departments.find(d => d.id === r.depId);
+    const baseDeptName = dept ? dept.name.trim() : '';
+
+    const tags = [];
+    
+    // Extract qualifications from fullName e.g. "(KKTC Uyruklu)", "(İngilizce)", "(İkinci Öğretim)", "(M.T.O.K.)"
+    if (r.fullName && baseDeptName) {
+      const full = r.fullName.trim();
+      const matches = full.match(/\(([^)]+)\)/g);
+      if (matches) {
+        matches.forEach(m => {
+          const clean = m.replace(/[()]/g, '').trim();
+          if (clean && !tags.includes(clean)) tags.push(clean);
+        });
+      }
+    }
+
+    const sc = r.scholarship ? r.scholarship.trim() : '';
+    if (sc && sc !== 'Genel' && sc !== 'Ücretsiz' && !tags.includes(sc)) {
+      tags.push(sc);
+    } else if (sc && tags.length === 0) {
+      tags.push(sc);
+    }
+
+    if (tags.length > 0) {
+      return `${uniName} (${tags.join(' - ')})`;
     }
     return uniName;
   }
@@ -379,7 +559,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (elScore) elScore.textContent = maxScore === 0 ? '-' : `${maxScore} Puan`;
     
     const deptInfo = YKS_DATABASE.departments.find(d => d.id === state.selectedDept);
-    if (elDept) elDept.textContent = deptInfo ? deptInfo.name : 'Seçilmedi';
+    const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
+    if (elDept) {
+      if (deptInfo) {
+        elDept.textContent = deptInfo.name;
+      } else if (hasTarget) {
+        const metricSymbol = state.targetMetric === 'rank' ? '#' : '';
+        const unitSymbol = state.targetMetric === 'baseScore' ? ' Puan' : '';
+        elDept.textContent = `Hedef: ${metricSymbol}${state.targetValue.toLocaleString()}${unitSymbol} (±%${state.targetTolerance})`;
+      } else {
+        elDept.textContent = 'Seçilmedi';
+      }
+    }
   }
 
   // 2. Trend Line Chart (2015-2025)
@@ -388,13 +579,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = getFilteredRecords();
     const isRank = state.metricType === 'rank';
     const tc = getThemeColors();
+    const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
 
-    if (!state.selectedDept || filtered.length === 0) {
+    if (filtered.length === 0) {
+      let emptyMsg = 'Lütfen Önce Bir Bölüm Seçiniz';
+      if (hasTarget) {
+        emptyMsg = 'Hedef Kriterlerinize Uyan Program Bulunamadı (Esneklik Yüzdesini Artırabilirsiniz)';
+      } else if (state.selectedDept) {
+        emptyMsg = 'Seçili Kriterlerde Kayıt Bulunamadı';
+      }
       trendChart.clear();
       trendChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Lütfen Önce Bir Bölüm Seçiniz' : 'Seçili Üniversite Yok (Üniversite Seçiniz)',
+          text: emptyMsg,
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
@@ -403,8 +601,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
+    // Ensure 100% unique series names if duplicate names occur in filtered set
+    const nameCounts = {};
+    filtered.forEach(r => {
+      const name = getProgramSeriesName(r);
+      nameCounts[name] = (nameCounts[name] || 0) + 1;
+    });
+
     const series = filtered.map((r, idx) => {
-      const seriesName = getProgramSeriesName(r);
+      let seriesName = getProgramSeriesName(r);
+      if (nameCounts[seriesName] > 1 && r.osymCode) {
+        seriesName = `${seriesName} [Kod:${r.osymCode}]`;
+      }
       const dataPoints = YKS_DATABASE.years.map(yr => {
         if (r.data[yr]) {
           const val = r.data[yr][state.metricType];
@@ -491,12 +699,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const tc = getThemeColors();
     const isMobile = window.innerWidth <= 768;
 
-    if (!state.selectedDept || filtered.length === 0) {
+    if (filtered.length === 0) {
       radarChart.clear();
       radarChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Bölüm Seçilmedi' : 'Seçili Üniversite Yok',
+          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
@@ -578,12 +786,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const uniData = filtered[0];
     const tc = getThemeColors();
 
-    if (!state.selectedDept || !uniData) {
+    if (!uniData) {
       rangeChart.clear();
       rangeChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Bölüm Seçilmedi' : 'Seçili Üniversite Yok',
+          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'
@@ -656,12 +864,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const years = YKS_DATABASE.years;
     const tc = getThemeColors();
 
-    if (!state.selectedDept || filtered.length === 0) {
+    if (filtered.length === 0) {
       quotaChart.clear();
       quotaChart.setOption({
         backgroundColor: 'transparent',
         title: {
-          text: !state.selectedDept ? 'Bölüm Seçilmedi' : 'Seçili Üniversite Yok',
+          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
           textStyle: { color: tc.axisColor, fontSize: 13 },
           left: 'center',
           top: 'center'

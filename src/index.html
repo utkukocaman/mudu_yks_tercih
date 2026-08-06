@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- YKS Analytics Portal v2.4 | Tercih Robotu + Hedef Filtresi -->
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
@@ -110,6 +111,96 @@
           <button class="btn-toggle-burs active" data-burs="Ücretsiz">
             <i class="fa-solid fa-building-columns"></i> Devlet / Ücretsiz
           </button>
+        </div>
+      </div>
+
+      <!-- Tercih Robotu & Hedef Puan / Sıralama Filtre Paneli -->
+      <div class="filter-group full-width target-robot-panel">
+        <div class="target-robot-header">
+          <label class="robot-title">
+            <i class="fa-solid fa-crosshairs"></i> Tercih Robotu & Hedef Sıralama / Puan Filtresi
+          </label>
+          <button type="button" class="btn-reset-target" id="btnResetTargetFilter" title="Hedef Filtresini Temizle">
+            <i class="fa-solid fa-rotate-left"></i> Filtreyi Temizle
+          </button>
+        </div>
+
+        <div class="target-robot-grid">
+          
+          <!-- 1. Hedef Değer Girdisi -->
+          <div class="target-input-box">
+            <div class="target-label-row">
+              <label for="targetValueInput">
+                <i class="fa-solid fa-hashtag"></i> Hedef Değeriniz
+              </label>
+              <button type="button" class="info-icon-btn" data-info="infoValue" title="Bilgi">
+                <i class="fa-solid fa-circle-question"></i>
+              </button>
+            </div>
+            <div class="input-with-select">
+              <input type="number" id="targetValueInput" class="custom-input" placeholder="Örn: 75000 veya 415" min="0" step="any">
+              <select id="targetMetricType" class="custom-select-sm">
+                <option value="rank">Sıralama (#)</option>
+                <option value="baseScore">Puan</option>
+              </select>
+            </div>
+            <!-- Info Popover -->
+            <div class="info-popover" id="infoValue">
+              <div class="popover-arrow"></div>
+              <strong><i class="fa-solid fa-circle-info"></i> Hedef Değeriniz Nedir?</strong>
+              <p>Kendi tahmini YKS başarı sıranızı (örn: <code>75000</code>) veya YKS taban puanınızı (örn: <code>415.5</code>) buraya yazabilirsiniz. Boş bırakırsanız tüm veriler gösterilir.</p>
+            </div>
+          </div>
+
+          <!-- 2. Esneklik Yüzdesi (% Sapma) -->
+          <div class="target-input-box">
+            <div class="target-label-row">
+              <label for="targetToleranceInput">
+                <i class="fa-solid fa-percent"></i> Esneklik / Sapma Yüzdesi (%)
+              </label>
+              <button type="button" class="info-icon-btn" data-info="infoTolerance" title="Bilgi">
+                <i class="fa-solid fa-circle-question"></i>
+              </button>
+            </div>
+            <div class="input-with-addon">
+              <input type="number" id="targetToleranceInput" class="custom-input" value="10" min="0" max="100" placeholder="0">
+              <span class="input-addon">%</span>
+            </div>
+            <!-- Info Popover -->
+            <div class="info-popover" id="infoTolerance">
+              <div class="popover-arrow"></div>
+              <strong><i class="fa-solid fa-circle-info"></i> Sapma Yüzdesi Ne İşe Yarar?</strong>
+              <p>Hedef puanınız veya sıralamanız etrafında ne kadarlık bir marj bırakmak istediğinizi belirler. Örnegin <code>100.000</code> sıralama için <code>%10</code> seçilirse <b>90.000 ile 110.000</b> arasındaki programlar filtrelenir. <code>0</code> yazarsanız tam değerinize denk gelenler listelenir.</p>
+            </div>
+          </div>
+
+          <!-- 3. Sapma Yönü Tercihi -->
+          <div class="target-input-box">
+            <div class="target-label-row">
+              <label for="targetDirectionSelect">
+                <i class="fa-solid fa-compass"></i> Tercih Stratejisi / Yönü
+              </label>
+              <button type="button" class="info-icon-btn" data-info="infoDirection" title="Bilgi">
+                <i class="fa-solid fa-circle-question"></i>
+              </button>
+            </div>
+            <select id="targetDirectionSelect" class="custom-select">
+              <option value="both">Dengeli Aralık (± %)</option>
+              <option value="safe">Güvenli / Sıralama Düşerse (+ %)</option>
+              <option value="reach">Yüksek Hedef / Üst Tercihler (- %)</option>
+            </select>
+            <!-- Info Popover -->
+            <div class="info-popover" id="infoDirection">
+              <div class="popover-arrow"></div>
+              <strong><i class="fa-solid fa-circle-info"></i> Tercih Stratejisi Nasıl Çalışır?</strong>
+              <ul style="padding-left:1.1rem; margin-top:0.3rem; font-size:0.78rem;">
+                <li><b>Dengeli Aralık (± %):</b> Hedefinizin hem üstündeki (hayal) hem altındaki (güvenli) programları süzmektedir.</li>
+                <li><b>Güvenli / Sıralama Düşerse (+ %):</b> Puanlar düşer veya sıralamanız gerilerse yerleşebileceğiniz garanti bölümleri gösterir.</li>
+                <li><b>Yüksek Hedef (- %):</b> Sıralamanızdan daha yüksek kapatan hedef tercihlerinizi gösterir.</li>
+              </ul>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -246,8 +337,18 @@
     </div>
   </footer>
 
-  <!-- Scripts -->
-  <script src="yks_data.js"></script>
+  <!-- Scripts: Data split into 5 parts (~4-5MB each) for GitHub Pages compatibility -->
+  <script src="yks_data_base.js"></script>
+  <script src="yks_records_0.js"></script>
+  <script src="yks_records_1.js"></script>
+  <script src="yks_records_2.js"></script>
+  <script src="yks_records_3.js"></script>
+  <script>
+    // Merge all parts into YKS_DATABASE for app.js compatibility
+    const YKS_DATABASE = Object.assign({}, YKS_BASE, {
+      records: [...YKS_RECORDS_PART0, ...YKS_RECORDS_PART1, ...YKS_RECORDS_PART2, ...YKS_RECORDS_PART3]
+    });
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
