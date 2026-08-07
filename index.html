@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YKS Veri Analitiği Portalı (2015-2025) | YKS Analytics Dashboard</title>
-  <meta name="description" content="2015-2025 YKS üniversite taban puanları, başarı sıralamaları ve kontenjanlarının interaktif karşılaştırmalı veri görselleştirme portalı.">
+  <title>MUDU TERCİH | Mudanya Üniversitesi YKS Tercih Danışma Portalı</title>
+  <meta name="description" content="Mudanya Üniversitesi YKS Tercih Danışma Portalı — 2015-2025 üniversite taban puanları, başarı sıralamaları ve kontenjanlarının interaktif karşılaştırmalı analizi.">
   
   <!-- Stylesheets & Fonts -->
   <link rel="stylesheet" href="styles.css">
@@ -18,15 +18,17 @@
 
   <!-- Top Header Navigation with Theme Toggle Button -->
   <header class="app-header">
-    <div class="brand-title">
-      <div class="brand-logo">
-        <i class="fa-solid fa-chart-line"></i>
+    <a href="index.html" class="brand-title-link" title="Ana Sayfaya Dön">
+      <div class="brand-title">
+        <div class="brand-logo">
+          <img src="mudulogo.png" alt="Mudanya Üniversitesi" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h1>MUDU TERCİH</h1>
+          <p>Mudanya Üniversitesi YKS Tercih Danışma Portalı</p>
+        </div>
       </div>
-      <div class="brand-text">
-        <h1>YKS Analytics Portal</h1>
-        <p>2015 - 2025 Veri Grafik Şöleni</p>
-      </div>
-    </div>
+    </a>
 
     <!-- Theme Switcher Action -->
     <div class="header-actions">
@@ -202,6 +204,15 @@
           </div>
 
         </div>
+
+        <!-- Search Trigger Button -->
+        <div class="robot-search-row">
+          <button type="button" id="btnSearchTarget" class="btn-search-target">
+            <i class="fa-solid fa-magnifying-glass"></i> Ara / Listele
+          </button>
+          <span class="robot-search-hint">Sıralama veya puan yazdıktan sonra butona basın ya da <kbd>Enter</kbd> tuşuna basın.</span>
+        </div>
+
       </div>
     </section>
 
@@ -235,11 +246,11 @@
       </div>
     </section>
 
-    <!-- Primary Charts Row (Line Chart + Radar Chart) -->
+    <!-- Primary Charts Row (Trend Line Chart - Full Width) -->
     <section class="charts-grid-primary">
       
       <!-- Trend Line Chart -->
-      <div class="chart-card">
+      <div class="chart-card" style="width:100%;">
         <div class="chart-header">
           <div class="chart-title-area">
             <h3><i class="fa-solid fa-chart-area" style="color:var(--accent-cyan)"></i> 2015-2025 Tarihsel Trend Grafiği</h3>
@@ -251,17 +262,6 @@
           </div>
         </div>
         <div id="trendChart" class="chart-box"></div>
-      </div>
-
-      <!-- Radar Comparison Chart -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <div class="chart-title-area">
-            <h3><i class="fa-solid fa-compass" style="color:var(--accent-purple)"></i> 360° Metrik Radar Analizi</h3>
-            <p>Burs tiplerine göre çok boyutlu yetkinlik ve performans kıyaslaması (2025)</p>
-          </div>
-        </div>
-        <div id="radarChart" class="chart-box"></div>
       </div>
 
     </section>

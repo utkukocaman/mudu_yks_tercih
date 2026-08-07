@@ -5,6 +5,23 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Robust Turkish String Normalizer for Case & Diacritics Invariant Matching (i/İ/I/ı, ç/Ç, ğ/Ğ, ö/Ö, ş/Ş, ü/Ü)
+  function trNormalize(str) {
+    if (!str) return '';
+    return str
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'i')
+      .replace(/ı/g, 'i')
+      .toLocaleLowerCase('tr')
+      .replace(/i̇/g, 'i')
+      .replace(/ğ/g, 'g')
+      .replace(/ü/g, 'u')
+      .replace(/ş/g, 's')
+      .replace(/ö/g, 'o')
+      .replace(/ç/g, 'c')
+      .trim();
+  }
+
   // Global App State
   const state = {
     metricType: 'rank', // 'rank' or 'baseScore'
@@ -23,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ECharts Instances
   let trendChart = null;
-  let radarChart = null;
   let quotaChart = null;
 
   // Initialize App in STRICT correct order
@@ -117,52 +133,50 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Search Department Filter
+    // Search Department Filter (Turkish-character invariant)
     if (deptSearchInput) {
       deptSearchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
+        const query = trNormalize(e.target.value);
         const items = document.querySelectorAll('#deptRadioList .dropdown-item-radio');
         items.forEach(item => {
-          const text = item.textContent.toLowerCase();
+          const text = trNormalize(item.textContent);
           item.style.display = text.includes(query) ? 'flex' : 'none';
         });
       });
     }
 
-    // Search University Filter
+    // Search University Filter (Turkish-character invariant)
     if (uniSearchInput) {
       uniSearchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
+        const query = trNormalize(e.target.value);
         const items = document.querySelectorAll('#uniCheckboxList .dropdown-item-checkbox');
         items.forEach(item => {
-          const text = item.textContent.toLowerCase();
+          const text = trNormalize(item.textContent);
           item.style.display = text.includes(query) ? 'flex' : 'none';
         });
       });
     }
 
-    // "Tümünü Seç" Button
+    // "Tümünü Seç" Button — only updates state, render on Ara
     if (btnSelectAll) {
       btnSelectAll.addEventListener('click', () => {
         const visibleCheckboxes = document.querySelectorAll('#uniCheckboxList .dropdown-item-checkbox:not([style*="display: none"]) input[type="checkbox"]');
         visibleCheckboxes.forEach(cb => cb.checked = true);
         updateSelectedUnisFromCheckboxes();
-        renderAll();
       });
     }
 
-    // "Tümünü İptal Et" Button
+    // "Tümünü İptal Et" Button — only clears state, render on Ara
     if (btnClearAll) {
       btnClearAll.addEventListener('click', () => {
         const checkboxes = document.querySelectorAll('#uniCheckboxList input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
         state.selectedUnis = [];
         updateUniDropdownTriggerLabel();
-        renderAll();
       });
     }
 
-    // Scholarship Toggle Listeners
+    // Scholarship Toggle Listeners — only update state, render on Ara
     scholarshipToggles.forEach(btn => {
       btn.addEventListener('click', () => {
         const burs = btn.getAttribute('data-burs');
@@ -176,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           state.selectedScholarships = state.selectedScholarships.filter(s => s !== burs && (burs !== 'Ücretsiz' || s !== 'Genel'));
         }
-        renderAll();
+        // No auto-render — user must press Ara
       });
     });
 
@@ -205,18 +219,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetDirectionSelect = document.getElementById('targetDirectionSelect');
     const btnResetTargetFilter = document.getElementById('btnResetTargetFilter');
 
-    if (targetValueInput) {
-      targetValueInput.addEventListener('input', (e) => {
-        const val = e.target.value.trim();
-        state.targetValue = val !== '' ? parseFloat(val) : null;
+    // Helper: read all target filter inputs into state (without rendering)
+    function applyTargetFilterState() {
+      const val = targetValueInput ? targetValueInput.value.trim() : '';
+      state.targetValue = val !== '' ? parseFloat(val) : null;
+      state.targetMetric = targetMetricType ? targetMetricType.value : 'rank';
+      const tol = targetToleranceInput ? targetToleranceInput.value.trim() : '10';
+      state.targetTolerance = tol !== '' ? parseFloat(tol) : 0;
+      state.targetDirection = targetDirectionSelect ? targetDirectionSelect.value : 'both';
+    }
+
+    // "Ara / Listele" Button — triggers filtering + full render
+    const btnSearchTarget = document.getElementById('btnSearchTarget');
+    if (btnSearchTarget) {
+      btnSearchTarget.addEventListener('click', () => {
+        applyTargetFilterState();
         renderAll();
       });
     }
 
+    // Enter key on targetValueInput also triggers search
+    if (targetValueInput) {
+      targetValueInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyTargetFilterState();
+          renderAll();
+        }
+      });
+    }
+
+    // Metric type, tolerance and direction changes still update state but do NOT auto-render
+    // User must press Ara button again to apply new settings
     if (targetMetricType) {
       targetMetricType.addEventListener('change', (e) => {
         state.targetMetric = e.target.value;
-        renderAll();
       });
     }
 
@@ -224,14 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
       targetToleranceInput.addEventListener('input', (e) => {
         const val = e.target.value.trim();
         state.targetTolerance = val !== '' ? parseFloat(val) : 0;
-        renderAll();
       });
     }
 
     if (targetDirectionSelect) {
       targetDirectionSelect.addEventListener('change', (e) => {
         state.targetDirection = e.target.value;
-        renderAll();
       });
     }
 
@@ -306,9 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', () => {
       if (trendChart) trendChart.resize();
-      if (radarChart) radarChart.resize();
       if (quotaChart) quotaChart.resize();
-      renderRadarChart(); // Re-calculate radar radius dynamically
     });
 
     renderAll();
@@ -319,7 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    YKS_DATABASE.departments.forEach(dept => {
+    // Sort departments in 100% correct Turkish alphabetical order
+    const sortedDepts = [...YKS_DATABASE.departments].sort((a, b) =>
+      a.name.trim().localeCompare(b.name.trim(), 'tr')
+    );
+
+    sortedDepts.forEach(dept => {
       const div = document.createElement('div');
       div.className = 'dropdown-item-radio';
       if (dept.id === state.selectedDept) div.classList.add('selected');
@@ -332,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       div.addEventListener('click', () => {
         state.selectedDept = dept.id;
         state.selectedUnis = []; // NO AUTO-SELECT: Reset selected universities to ZERO
-        
+
         // Mark selected in UI
         document.querySelectorAll('#deptRadioList .dropdown-item-radio').forEach(i => i.classList.remove('selected'));
         div.classList.add('selected');
@@ -345,9 +383,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const deptMenu = document.getElementById('deptDropdownMenu');
         if (deptMenu) deptMenu.classList.remove('show');
 
-        // Populate universities for this department with ALL UNCHECKED
+        // Populate universities for this department — NO AUTO RENDER
+        // User must press "Ara / Listele" to trigger render
         populateUniversitiesForDept(dept.id);
-        renderAll();
+
+        // Show a subtle hint that the user should press "Ara"
+        const hint = document.getElementById('btnSearchTarget');
+        if (hint) {
+          hint.classList.add('pulse-hint');
+          setTimeout(() => hint.classList.remove('pulse-hint'), 2000);
+        }
       });
 
       listContainer.appendChild(div);
@@ -369,7 +414,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const availableUniIds = [...new Set(records.map(r => r.uniId))];
     const availableUnis = YKS_DATABASE.universities.filter(u => availableUniIds.includes(u.id));
 
-    availableUnis.forEach((uni) => {
+    // Sort universities in 100% correct Turkish alphabetical order
+    const sortedUnis = [...availableUnis].sort((a, b) =>
+      a.name.trim().localeCompare(b.name.trim(), 'tr')
+    );
+
+    sortedUnis.forEach((uni) => {
       const label = document.createElement('label');
       label.className = 'dropdown-item-checkbox';
 
@@ -381,8 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const cb = label.querySelector('input');
       cb.addEventListener('change', () => {
+        // Only update state; render triggered by "Ara" button
         updateSelectedUnisFromCheckboxes();
-        renderAll();
       });
 
       listContainer.appendChild(label);
@@ -419,18 +469,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initCharts() {
     const elTrend = document.getElementById('trendChart');
-    const elRadar = document.getElementById('radarChart');
     const elQuota = document.getElementById('quotaChart');
 
     if (elTrend) trendChart = echarts.init(elTrend);
-    if (elRadar) radarChart = echarts.init(elRadar);
     if (elQuota) quotaChart = echarts.init(elQuota);
   }
 
   function renderAll() {
     renderKPIs();
     renderTrendChart();
-    renderRadarChart();
     renderQuotaChart();
     renderTable();
   }
@@ -608,6 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = getFilteredRecords();
     const isRank = state.metricType === 'rank';
     const tc = getThemeColors();
+    const isMobile = window.innerWidth <= 768;
     const hasTarget = state.targetValue !== null && state.targetValue !== undefined && !isNaN(state.targetValue) && state.targetValue > 0;
 
     if (filtered.length === 0) {
@@ -693,10 +741,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       },
       legend: {
-        textStyle: { color: tc.axisColor },
-        top: 0
+        textStyle: { color: tc.axisColor, fontSize: 11 },
+        top: 0,
+        type: 'scroll',
+        pageIconColor: tc.axisColor,
+        pageTextStyle: { color: tc.axisColor },
+        padding: [0, 20, 8, 20]
       },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      grid: { left: '3%', right: '4%', bottom: '4%', top: isMobile ? '22%' : '16%', containLabel: true },
       xAxis: {
         type: 'category',
         boundaryGap: false,
@@ -720,95 +772,6 @@ document.addEventListener('DOMContentLoaded', () => {
     trendChart.setOption(option, true);
   }
 
-  // 3. Radar Chart (360° Fitted Radar Config - High Contrast Titles in Both Themes)
-  function renderRadarChart() {
-    if (!radarChart) return;
-    const filtered = getFilteredRecords();
-    const year = 2025;
-    const tc = getThemeColors();
-    const isMobile = window.innerWidth <= 768;
-
-    if (filtered.length === 0) {
-      radarChart.clear();
-      radarChart.setOption({
-        backgroundColor: 'transparent',
-        title: {
-          text: 'Seçili Kriterlerde Kayıt Bulunamadı',
-          textStyle: { color: tc.axisColor, fontSize: 13 },
-          left: 'center',
-          top: 'center'
-        }
-      });
-      return;
-    }
-
-    const radarSeriesData = filtered.map((r, idx) => {
-      const seriesName = getProgramSeriesName(r);
-      const d = r.data[year] || r.data[2024] || r.data[2023] || {};
-      
-      const rankScore = (d.rank && d.rank > 0) ? Math.max(10, 100 - Math.log10(d.rank) * 16) : 40;
-      const baseScore = d.baseScore ? (d.baseScore / 600) * 100 : 50;
-      const fillRate = d.quota ? (d.filled / d.quota) * 100 : 90;
-      const gapRatio = (d.ceilingScore && d.baseScore) ? 100 - (d.ceilingScore - d.baseScore) * 2 : 75;
-
-      const colors = ['#0284c7', '#e11d48', '#7c3aed', '#16a34a', '#d97706', '#2563eb'];
-      const color = colors[idx % colors.length];
-
-      return {
-        name: seriesName,
-        value: [
-          Math.round(rankScore),
-          Math.round(baseScore),
-          Math.round(fillRate),
-          Math.round(gapRatio)
-        ],
-        itemStyle: { color: color },
-        areaStyle: { color: `${color}33` }
-      };
-    });
-
-    const option = {
-      backgroundColor: 'transparent',
-      tooltip: {
-        backgroundColor: tc.tooltipBg,
-        borderColor: tc.tooltipBorder,
-        textStyle: { color: tc.textColor }
-      },
-      legend: { textStyle: { color: tc.axisColor }, bottom: 0 },
-      radar: {
-        center: ['50%', '52%'],
-        radius: isMobile ? '38%' : '54%',
-        indicator: [
-          { name: 'Başarı Sırası Gücü', max: 100 },
-          { name: 'Taban Puan Gücü', max: 100 },
-          { name: 'Kontenjan Doluluğu', max: 100 },
-          { name: 'Puan Makası Dengesi', max: 100 }
-        ],
-        axisName: {
-          color: tc.radarAxisNameColor, // Crystal clear contrast color (#00f2fe in Dark, #0f172a in Light)
-          fontSize: isMobile ? 10 : 12,
-          fontWeight: 800,
-          padding: [-3, 0]
-        },
-        splitArea: {
-          areaStyle: {
-            color: document.body.classList.contains('light-mode') 
-              ? ['rgba(241, 245, 249, 0.7)', 'rgba(226, 232, 240, 0.9)']
-              : ['rgba(22, 27, 46, 0.4)', 'rgba(10, 12, 20, 0.6)']
-          }
-        },
-        splitLine: { lineStyle: { color: tc.splitLine } }
-      },
-      series: [{
-        type: 'radar',
-        data: radarSeriesData
-      }]
-    };
-
-    radarChart.setOption(option, true);
-  }
-
-
 
   // 5. Quota vs Filled Bar Chart
   function renderQuotaChart() {
@@ -816,6 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filtered = getFilteredRecords();
     const years = YKS_DATABASE.years;
     const tc = getThemeColors();
+    const isMobile = window.innerWidth <= 768;
 
     if (filtered.length === 0) {
       quotaChart.clear();
@@ -854,8 +818,15 @@ document.addEventListener('DOMContentLoaded', () => {
         borderColor: tc.tooltipBorder,
         textStyle: { color: tc.textColor }
       },
-      legend: { textStyle: { color: tc.axisColor }, top: 0 },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      legend: {
+        textStyle: { color: tc.axisColor, fontSize: 11 },
+        top: 0,
+        type: 'scroll',
+        pageIconColor: tc.axisColor,
+        pageTextStyle: { color: tc.axisColor },
+        padding: [0, 20, 8, 20]
+      },
+      grid: { left: '3%', right: '4%', bottom: '4%', top: isMobile ? '22%' : '16%', containLabel: true },
       xAxis: {
         type: 'category',
         data: years,

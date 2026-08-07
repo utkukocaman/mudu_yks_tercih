@@ -115,7 +115,7 @@ body.light-mode .designed-by-brand {
 .app-header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 10000000 !important;
   background: rgba(10, 12, 20, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -126,6 +126,19 @@ body.light-mode .designed-by-brand {
   align-items: center;
 }
 
+.brand-title-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.brand-title-link:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .brand-title {
   display: flex;
   align-items: center;
@@ -133,33 +146,48 @@ body.light-mode .designed-by-brand {
 }
 
 .brand-logo {
-  width: 42px;
-  height: 42px;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-  border-radius: var(--radius-md);
+  width: auto;
+  height: 52px;
+  background: transparent;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 800;
-  box-shadow: var(--glow-cyan);
+  box-shadow: none;
+}
+
+.brand-logo-img {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  /* Invert dark navy logo to work on dark glassmorphism header */
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+  transition: opacity 0.2s;
+}
+
+body.light-mode .brand-logo-img {
+  filter: none;
+  opacity: 1;
 }
 
 .brand-text h1 {
-  font-size: 1.35rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--text-main), var(--text-muted));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.5px;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+}
+
+body.light-mode .brand-text h1 {
+  color: #0f172a;
 }
 
 .brand-text p {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: var(--accent-cyan);
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+  opacity: 0.85;
 }
 
 /* Theme Switcher Button */
@@ -185,8 +213,9 @@ body.light-mode .designed-by-brand {
 
 /* Layout Main Container */
 .dashboard-container {
-  max-width: 1700px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   padding: 1.5rem 2rem 3rem 2rem;
   display: flex;
   flex-direction: column;
@@ -291,7 +320,7 @@ body.light-mode .designed-by-brand {
   border: 1px solid rgba(0, 242, 254, 0.3);
   border-radius: var(--radius-md);
   box-shadow: 0 25px 70px rgba(0,0,0,0.5);
-  z-index: 999999 !important;
+  z-index: 9999;
   display: none;
   flex-direction: column;
   backdrop-filter: blur(20px);
@@ -532,17 +561,11 @@ body.light-mode .designed-by-brand {
   font-weight: 600;
 }
 
-/* Charts Main Grid */
-.charts-grid-primary {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1.5rem;
-}
-
-@media (max-width: 1200px) {
-  .charts-grid-primary {
-    grid-template-columns: 1fr;
-  }
+/* Charts Grids (Full Width Single Card Layouts) */
+.charts-grid-primary,
+.charts-grid-secondary {
+  display: block;
+  width: 100%;
 }
 
 .chart-card {
@@ -554,7 +577,7 @@ body.light-mode .designed-by-brand {
   display: flex;
   flex-direction: column;
   position: relative;
-  min-height: 460px;
+  min-height: 540px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.1);
   overflow: hidden;
 }
@@ -606,21 +629,10 @@ body.light-mode .designed-by-brand {
 .chart-box {
   width: 100%;
   flex: 1;
-  min-height: 360px;
+  min-height: 420px;
 }
 
-/* Secondary Charts Grid */
-.charts-grid-secondary {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
 
-@media (max-width: 992px) {
-  .charts-grid-secondary {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* Data Table Section */
 .table-card {
@@ -865,13 +877,13 @@ table.yks-table tbody tr:hover {
 
   .chart-box {
     width: 100% !important;
-    height: 280px !important;
-    min-height: 280px !important;
+    height: 360px !important;
+    min-height: 360px !important;
   }
 
   .dropdown-menu {
     min-width: 100%;
-    z-index: 999999 !important;
+    z-index: 9999;
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6) !important;
   }
 
@@ -1164,4 +1176,71 @@ body.light-mode .dept-tag {
   color: #0284c7;
   background: rgba(2, 132, 199, 0.1);
   border-color: rgba(2, 132, 199, 0.3);
+}
+
+/* Search Trigger Button Row */
+.robot-search-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+.btn-search-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1.5rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(0, 242, 254, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.btn-search-target:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 242, 254, 0.45);
+  background: linear-gradient(135deg, #06f0ff, #0369a1);
+}
+
+.btn-search-target:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 242, 254, 0.2);
+}
+
+.robot-search-hint {
+  font-size: 0.79rem;
+  color: var(--text-muted);
+}
+
+.robot-search-hint kbd {
+  display: inline-block;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.75rem;
+  font-family: var(--font-code);
+  color: var(--accent-cyan);
+}
+
+/* Pulse animation on Ara button when dept is selected */
+@keyframes pulseHint {
+  0%   { box-shadow: 0 4px 16px rgba(0, 242, 254, 0.3); transform: scale(1); }
+  30%  { box-shadow: 0 0 0 8px rgba(0, 242, 254, 0.25); transform: scale(1.06); }
+  60%  { box-shadow: 0 0 0 16px rgba(0, 242, 254, 0.08); transform: scale(1.03); }
+  100% { box-shadow: 0 4px 16px rgba(0, 242, 254, 0.3); transform: scale(1); }
+}
+
+.btn-search-target.pulse-hint {
+  animation: pulseHint 0.8s ease-out 2;
 }
